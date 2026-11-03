@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "setup:floci": "node scripts/setup-floci.js",
     "check:s3": "node scripts/check-s3.js",
     "check:dynamodb": "node scripts/check-dynamodb.js",
     "check:textract": "node scripts/check-textract.js",
@@ -13,6 +14,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1161.0",
+    "@aws-sdk/client-lambda": "^3.1161.0",
     "@aws-sdk/client-s3": "^3.1161.0",
     "@aws-sdk/client-sqs": "^3.1161.0",
     "@aws-sdk/client-textract": "^3.1161.0",

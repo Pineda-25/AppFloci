@@ -29,6 +29,10 @@ El formulario registra comprobantes en Textract, S3 y DynamoDB. La tabla muestra
 
 Después de guardar un registro, la aplicación envía su identificador a SQS para su revisión. Si falla el envío, el comprobante permanece guardado y se muestra un aviso; la conexión automática de Lambda se incorporará después.
 
+## Preparar recursos locales
+
+Con Docker y Floci en ejecución, ejecuta `npm run setup:floci`. El comando crea el bucket, la tabla, la cola y la función Lambda que falten; si ya existen, los conserva y actualiza la dirección de Floci en la configuración de Lambda cuando sea necesario. Requiere `docker` y `zip`. Para una función existente, el comando no reemplaza su código: actualízalo por separado cuando cambie. El comando no restaura registros o imágenes perdidos.
+
 ## Comprobar S3 en Floci
 
 Inicia Floci y crea el bucket indicado en `.env` si todavía no existe:
