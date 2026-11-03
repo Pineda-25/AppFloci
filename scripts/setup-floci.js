@@ -9,47 +9,45 @@ const { LambdaClient, GetFunctionConfigurationCommand, CreateFunctionCommand, Up
 const { s3, bucket } = require('../src/config/s3');
 const { dynamodb, table } = require('../src/config/dynamodb');
 const { sqs, queueName } = require('../src/config/sqs');
+const { configuracionAws } = require('../src/config/aws');
 
 const endpoint = new URL(process.env.AWS_ENDPOINT_URL);
 if (endpoint.protocol !== 'http:' || !['localhost', '127.0.0.1', 'localhost.floci.io'].includes(endpoint.hostname)) {
   throw new Error('setup:floci solo admite un endpoint local de Floci por HTTP.');
 }
-const lambda = new LambdaClient({
-  endpoint: endpoint.href,
-  region: process.env.AWS_REGION,
-  credentials: { accessKeyId: process.env.AWS_ACCESS_KEY_ID, secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY }
-});
+const lambda = new LambdaClient(configuracionAws());
 const functionName = 'revision-comprobantes';
 
-async function setup() {
+// Solo crea el recurso cuando el servicio confirma que no existe.
+async function asegurarRecurso(nombre, buscar, crear, noExiste) {
   try {
-    await s3.send(new HeadBucketCommand({ Bucket: bucket }));
-    console.log(`S3: bucket '${bucket}' ya existe.`);
+    const resultado = await buscar();
+    console.log(`${nombre}: ya existe.`);
+    return resultado;
   } catch (error) {
-    if (!['NotFound', 'NoSuchBucket', '404'].includes(error.name) && error.$metadata?.httpStatusCode !== 404) throw error;
-    await s3.send(new CreateBucketCommand({ Bucket: bucket }));
-    console.log(`S3: bucket '${bucket}' creado.`);
+    if (!noExiste(error)) throw error;
+    const resultado = await crear();
+    console.log(`${nombre}: creado.`);
+    return resultado;
   }
+}
 
-  try {
-    await dynamodb.send(new DescribeTableCommand({ TableName: table }));
-    console.log(`DynamoDB: tabla '${table}' ya existe.`);
-  } catch (error) {
-    if (error.name !== 'ResourceNotFoundException') throw error;
-    await dynamodb.send(new CreateTableCommand({ TableName: table, AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }], KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }], BillingMode: 'PAY_PER_REQUEST' }));
-    console.log(`DynamoDB: tabla '${table}' creada.`);
-  }
+async function setup() {
+  await asegurarRecurso(`S3: bucket '${bucket}'`,
+    () => s3.send(new HeadBucketCommand({ Bucket: bucket })),
+    () => s3.send(new CreateBucketCommand({ Bucket: bucket })),
+    (error) => ['NotFound', 'NoSuchBucket', '404'].includes(error.name) || error.$metadata?.httpStatusCode === 404);
+
+  await asegurarRecurso(`DynamoDB: tabla '${table}'`,
+    () => dynamodb.send(new DescribeTableCommand({ TableName: table })),
+    () => dynamodb.send(new CreateTableCommand({ TableName: table, AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }], KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }], BillingMode: 'PAY_PER_REQUEST' })),
+    (error) => error.name === 'ResourceNotFoundException');
   await waitUntilTableExists({ client: dynamodb, maxWaitTime: 30 }, { TableName: table });
 
-  let queueUrl;
-  try {
-    ({ QueueUrl: queueUrl } = await sqs.send(new GetQueueUrlCommand({ QueueName: queueName })));
-    console.log(`SQS: cola '${queueName}' ya existe.`);
-  } catch (error) {
-    if (!['QueueDoesNotExist', 'AWS.SimpleQueueService.NonExistentQueue'].includes(error.name)) throw error;
-    ({ QueueUrl: queueUrl } = await sqs.send(new CreateQueueCommand({ QueueName: queueName })));
-    console.log(`SQS: cola '${queueName}' creada.`);
-  }
+  const { QueueUrl: queueUrl } = await asegurarRecurso(`SQS: cola '${queueName}'`,
+    () => sqs.send(new GetQueueUrlCommand({ QueueName: queueName })),
+    () => sqs.send(new CreateQueueCommand({ QueueName: queueName })),
+    (error) => ['QueueDoesNotExist', 'AWS.SimpleQueueService.NonExistentQueue'].includes(error.name));
 
   const ip = execFileSync('docker', ['inspect', 'floci', '--format', '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'], { encoding: 'utf8' }).trim();
   if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) throw new Error('No se pudo obtener una dirección IPv4 del contenedor floci.');
