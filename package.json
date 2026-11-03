@@ -8,11 +8,13 @@
     "dev": "node --watch src/server.js",
     "check:s3": "node scripts/check-s3.js",
     "check:dynamodb": "node scripts/check-dynamodb.js",
-    "check:textract": "node scripts/check-textract.js"
+    "check:textract": "node scripts/check-textract.js",
+    "check:sqs": "node scripts/check-sqs.js"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1161.0",
     "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/client-sqs": "^3.1161.0",
     "@aws-sdk/client-textract": "^3.1161.0",
     "dotenv": "^16.4.5",
     "express": "^5.1.0"

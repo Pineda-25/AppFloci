@@ -63,3 +63,15 @@ npm run check:textract -- /ruta/a/imagen.jpg
 ```
 
 El comando muestra la respuesta JSON de la operación `DetectDocumentText`. En Floci el análisis puede ser simulado; no se debe asumir que el texto devuelto corresponde a la imagen.
+
+## Comprobar SQS en Floci
+
+Crea la cola indicada en `.env` si todavía no existe:
+
+```bash
+env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:4566 sqs create-queue \
+  --queue-name revision-comprobantes
+```
+
+Ejecuta `npm run check:sqs` para comprobar que la cola esté disponible.
