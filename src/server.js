@@ -6,7 +6,7 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
 const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { PutItemCommand, ScanCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
+const { PutItemCommand, ScanCommand, GetItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
 const { textract } = require('./config/textract');
 const { s3, bucket } = require('./config/s3');
 const { dynamodb, table } = require('./config/dynamodb');
@@ -106,6 +106,18 @@ app.get('/api/comprobantes/:id/resultado', async (req, res) => {
     return res.status(404).json({ error: 'No se encontró el resultado del comprobante.' });
   }
   res.json(JSON.parse(record.Item.resultadoJson.S));
+});
+
+app.delete('/api/comprobantes/:id', async (req, res) => {
+  const key = { id: { S: req.params.id } };
+  const record = await dynamodb.send(new GetItemCommand({ TableName: table, Key: key }));
+  if (!record.Item) return res.status(404).json({ error: 'No se encontró el comprobante.' });
+  if (!record.Item.imagenBucket?.S || !record.Item.imagenKey?.S) {
+    return res.status(500).json({ error: 'El comprobante no tiene una referencia de imagen válida.' });
+  }
+  await s3.send(new DeleteObjectCommand({ Bucket: record.Item.imagenBucket.S, Key: record.Item.imagenKey.S }));
+  await dynamodb.send(new DeleteItemCommand({ TableName: table, Key: key }));
+  res.json({ mensaje: 'Comprobante eliminado correctamente.' });
 });
 
 app.use((error, req, res, next) => {

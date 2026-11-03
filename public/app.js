@@ -20,6 +20,19 @@ async function showResult(id) {
   }
 }
 
+async function deleteComprobante(id) {
+  if (!window.confirm('¿Deseas eliminar este comprobante y su imagen?')) return;
+  try {
+    const response = await fetch(`/api/comprobantes/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'No se pudo eliminar el comprobante.');
+    await loadComprobantes();
+    listMessage.textContent = data.mensaje;
+  } catch (error) {
+    listMessage.textContent = `Error: ${error.message}`;
+  }
+}
+
 async function loadComprobantes() {
   try {
     const response = await fetch('/api/comprobantes');
@@ -49,6 +62,11 @@ async function loadComprobantes() {
       resultButton.textContent = 'Ver JSON';
       resultButton.addEventListener('click', () => showResult(comprobante.id));
       actions.append(' ', resultButton);
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.textContent = 'Eliminar';
+      deleteButton.addEventListener('click', () => deleteComprobante(comprobante.id));
+      actions.append(' ', deleteButton);
     }
     listMessage.textContent = '';
   } catch (error) {
