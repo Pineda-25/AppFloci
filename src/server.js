@@ -5,9 +5,11 @@ const multer = require('multer');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
-const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { PutItemCommand } = require('@aws-sdk/client-dynamodb');
 const { textract } = require('./config/textract');
 const { s3, bucket } = require('./config/s3');
+const { dynamodb, table } = require('./config/dynamodb');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,7 +18,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar', '/api/comprobantes/probar-s3'], upload.single('imagen'), async (req, res) => {
+app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar', '/api/comprobantes/probar-s3', '/api/comprobantes'], upload.single('imagen'), async (req, res) => {
   const { tipo, fecha, usuario, tienda, observacion = '' } = req.body;
   if (!['boleta', 'factura'].includes(tipo) || !fecha || !usuario?.trim() ||
       !['Chincha', 'Pisco', 'Ica'].includes(tienda)) {
@@ -38,10 +40,35 @@ app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar', '/api/com
   }
 
   const resultado = await textract.send(new DetectDocumentTextCommand({ Document: { Bytes: image } }));
-  if (req.path.endsWith('/probar-s3')) {
-    const key = `comprobantes/${randomUUID()}.${isJpeg ? 'jpg' : 'png'}`;
+  if (req.path.endsWith('/probar-s3') || req.path === '/api/comprobantes') {
+    const id = randomUUID();
+    const key = `comprobantes/${id}.${isJpeg ? 'jpg' : 'png'}`;
     await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: image, ContentType: isJpeg ? 'image/jpeg' : 'image/png' }));
-    return res.json({ mensaje: 'Análisis recibido e imagen guardada en S3. Los datos aún no se han guardado en DynamoDB.', comprobante, imagen: { ...imagen, bucket, key }, resultado });
+    if (req.path.endsWith('/probar-s3')) {
+      return res.json({ mensaje: 'Análisis recibido e imagen guardada en S3. Los datos aún no se han guardado en DynamoDB.', comprobante, imagen: { ...imagen, bucket, key }, resultado });
+    }
+
+    try {
+      await dynamodb.send(new PutItemCommand({
+        TableName: table,
+        Item: {
+          id: { S: id }, tipo: { S: tipo }, fecha: { S: fecha }, usuario: { S: usuario.trim() },
+          tienda: { S: tienda }, observacion: { S: observacion }, imagenKey: { S: key },
+          imagenBucket: { S: bucket }, resultadoJson: { S: JSON.stringify(resultado) },
+          estado: { S: 'Pendiente' }
+        },
+        ConditionExpression: 'attribute_not_exists(id)'
+      }));
+    } catch (error) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+      } catch (cleanupError) {
+        console.error(`No se pudo eliminar la imagen ${key} tras fallar DynamoDB:`, cleanupError);
+      }
+      throw error;
+    }
+
+    return res.status(201).json({ mensaje: 'Comprobante guardado correctamente.', id, comprobante, imagen: { ...imagen, bucket, key }, resultado });
   }
   res.json({ mensaje: 'Análisis simulado recibido. Aún no se ha guardado el comprobante.', comprobante, imagen, resultado });
 });
