@@ -26,3 +26,15 @@ npm run dev
 Abrir <http://localhost:3000>. Para detener el servidor, pulsar Ctrl+C en la terminal. `npm start` permite iniciarlo sin reinicio automático.
 
 La pantalla actual es una base inicial; los servicios y el formulario se incorporarán en los siguientes pasos.
+
+## Comprobar S3 en Floci
+
+Inicia Floci y crea el bucket indicado en `.env` si todavía no existe:
+
+```bash
+floci start
+env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:4566 s3 mb s3://appfloci-comprobantes
+```
+
+Después, ejecuta `npm run check:s3` para comprobar la conexión. Las credenciales de ejemplo son para el emulador local; no publiques credenciales reales ni el archivo `.env`.
