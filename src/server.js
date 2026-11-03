@@ -3,8 +3,11 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const { textract } = require('./config/textract');
+const { s3, bucket } = require('./config/s3');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -13,7 +16,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar'], upload.single('imagen'), async (req, res) => {
+app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar', '/api/comprobantes/probar-s3'], upload.single('imagen'), async (req, res) => {
   const { tipo, fecha, usuario, tienda, observacion = '' } = req.body;
   if (!['boleta', 'factura'].includes(tipo) || !fecha || !usuario?.trim() ||
       !['Chincha', 'Pisco', 'Ica'].includes(tienda)) {
@@ -35,6 +38,11 @@ app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar'], upload.s
   }
 
   const resultado = await textract.send(new DetectDocumentTextCommand({ Document: { Bytes: image } }));
+  if (req.path.endsWith('/probar-s3')) {
+    const key = `comprobantes/${randomUUID()}.${isJpeg ? 'jpg' : 'png'}`;
+    await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: image, ContentType: isJpeg ? 'image/jpeg' : 'image/png' }));
+    return res.json({ mensaje: 'Análisis recibido e imagen guardada en S3. Los datos aún no se han guardado en DynamoDB.', comprobante, imagen: { ...imagen, bucket, key }, resultado });
+  }
   res.json({ mensaje: 'Análisis simulado recibido. Aún no se ha guardado el comprobante.', comprobante, imagen, resultado });
 });
 
