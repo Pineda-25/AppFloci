@@ -88,7 +88,7 @@ form.addEventListener('submit', async (event) => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'No se pudo registrar el comprobante.');
-    message.textContent = `${data.mensaje} Identificador: ${data.id}`;
+    message.textContent = `${data.mensaje} Identificador: ${data.id}${data.aviso ? ` ${data.aviso}` : ''}`;
     form.reset();
     await loadComprobantes();
   } catch (error) {

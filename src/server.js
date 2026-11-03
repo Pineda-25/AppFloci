@@ -7,9 +7,11 @@ const { randomUUID } = require('node:crypto');
 const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
 const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { PutItemCommand, ScanCommand, GetItemCommand, DeleteItemCommand } = require('@aws-sdk/client-dynamodb');
+const { GetQueueUrlCommand, SendMessageCommand } = require('@aws-sdk/client-sqs');
 const { textract } = require('./config/textract');
 const { s3, bucket } = require('./config/s3');
 const { dynamodb, table } = require('./config/dynamodb');
+const { sqs, queueName } = require('./config/sqs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -68,7 +70,16 @@ app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar', '/api/com
       throw error;
     }
 
-    return res.status(201).json({ mensaje: 'Comprobante guardado correctamente.', id, comprobante, imagen: { ...imagen, bucket, key }, resultado });
+    let aviso;
+    try {
+      const queue = await sqs.send(new GetQueueUrlCommand({ QueueName: queueName }));
+      await sqs.send(new SendMessageCommand({ QueueUrl: queue.QueueUrl, MessageBody: JSON.stringify({ comprobanteId: id }) }));
+    } catch (error) {
+      console.error(`No se pudo enviar a revisión el comprobante ${id}:`, error);
+      aviso = 'El comprobante se guardó, pero no se pudo enviar a la cola de revisión.';
+    }
+
+    return res.status(201).json({ mensaje: 'Comprobante guardado correctamente.', aviso, id, comprobante, imagen: { ...imagen, bucket, key }, resultado });
   }
   res.json({ mensaje: 'Análisis simulado recibido. Aún no se ha guardado el comprobante.', comprobante, imagen, resultado });
 });

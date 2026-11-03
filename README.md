@@ -27,6 +27,8 @@ Abrir <http://localhost:3000>. Para detener el servidor, pulsar Ctrl+C en la ter
 
 El formulario registra comprobantes en Textract, S3 y DynamoDB. La tabla muestra los registros y permite abrir su imagen, consultar el JSON y eliminar el comprobante junto con su imagen.
 
+Después de guardar un registro, la aplicación envía su identificador a SQS para su revisión. Si falla el envío, el comprobante permanece guardado y se muestra un aviso; la conexión automática de Lambda se incorporará después.
+
 ## Comprobar S3 en Floci
 
 Inicia Floci y crea el bucket indicado en `.env` si todavía no existe:
