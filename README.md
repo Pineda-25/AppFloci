@@ -38,3 +38,18 @@ env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east
 ```
 
 Después, ejecuta `npm run check:s3` para comprobar la conexión. Las credenciales de ejemplo son para el emulador local; no publiques credenciales reales ni el archivo `.env`.
+
+## Comprobar DynamoDB en Floci
+
+Crea la tabla indicada en `.env` si todavía no existe:
+
+```bash
+env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:4566 dynamodb create-table \
+  --table-name comprobantes \
+  --attribute-definitions AttributeName=id,AttributeType=S \
+  --key-schema AttributeName=id,KeyType=HASH \
+  --billing-mode PAY_PER_REQUEST
+```
+
+Ejecuta `npm run check:dynamodb` para comprobar la conexión y el estado de la tabla.
