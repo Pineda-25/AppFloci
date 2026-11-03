@@ -27,11 +27,11 @@ Abrir <http://localhost:3000>. Para detener el servidor, pulsar Ctrl+C en la ter
 
 El formulario registra comprobantes en Textract, S3 y DynamoDB. La tabla muestra los registros y permite abrir su imagen, consultar el JSON y eliminar el comprobante junto con su imagen.
 
-Después de guardar un registro, la aplicación envía su identificador a SQS para su revisión. Si falla el envío, el comprobante permanece guardado y se muestra un aviso; la conexión automática de Lambda se incorporará después.
+Después de guardar un registro, la aplicación envía su identificador a SQS para su revisión por Lambda. Si falla el envío, el comprobante permanece guardado y se muestra un aviso.
 
 ## Preparar recursos locales
 
-Con Docker y Floci en ejecución, ejecuta `npm run setup:floci`. El comando crea el bucket, la tabla, la cola y la función Lambda que falten; si ya existen, los conserva y actualiza la dirección de Floci en la configuración de Lambda cuando sea necesario. Requiere `docker` y `zip`. Para una función existente, el comando no reemplaza su código: actualízalo por separado cuando cambie. El comando no restaura registros o imágenes perdidos.
+Con Docker y Floci en ejecución, ejecuta `npm run setup:floci`. El comando crea el bucket, la tabla, la cola, la función Lambda y su conexión con SQS si faltan; si ya existen, los conserva y actualiza la dirección de Floci en la configuración de Lambda cuando sea necesario. Requiere `docker` y `zip`. Para una función existente, el comando no reemplaza su código: actualízalo por separado cuando cambie. El comando no restaura registros o imágenes perdidos.
 
 ## Comprobar S3 en Floci
 
@@ -84,7 +84,7 @@ Ejecuta `npm run check:sqs` para comprobar que la cola esté disponible.
 
 ## Probar Lambda en Floci
 
-La función recibe eventos con registros de SQS, consulta DynamoDB y marca los comprobantes para revisión humana porque Textract devuelve datos simulados. La conexión automática con la cola todavía está pendiente.
+La función recibe eventos con registros de SQS, consulta DynamoDB y marca los comprobantes para revisión humana porque Textract devuelve datos simulados. `npm run setup:floci` prepara la conexión automática con la cola.
 
 Antes de crear la función, consulta la dirección del contenedor de Floci con `docker inspect floci --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'`. Sustituye `IP_DE_FLOCI` en el comando siguiente por la dirección obtenida; esta puede cambiar al recrear el contenedor.
 

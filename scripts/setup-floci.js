@@ -4,8 +4,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { HeadBucketCommand, CreateBucketCommand } = require('@aws-sdk/client-s3');
 const { DescribeTableCommand, CreateTableCommand, waitUntilTableExists } = require('@aws-sdk/client-dynamodb');
-const { GetQueueUrlCommand, CreateQueueCommand } = require('@aws-sdk/client-sqs');
-const { LambdaClient, GetFunctionConfigurationCommand, CreateFunctionCommand, UpdateFunctionConfigurationCommand } = require('@aws-sdk/client-lambda');
+const { GetQueueUrlCommand, CreateQueueCommand, GetQueueAttributesCommand } = require('@aws-sdk/client-sqs');
+const { LambdaClient, GetFunctionConfigurationCommand, CreateFunctionCommand, UpdateFunctionConfigurationCommand, ListEventSourceMappingsCommand, CreateEventSourceMappingCommand, UpdateEventSourceMappingCommand } = require('@aws-sdk/client-lambda');
 const { s3, bucket } = require('../src/config/s3');
 const { dynamodb, table } = require('../src/config/dynamodb');
 const { sqs, queueName } = require('../src/config/sqs');
@@ -41,12 +41,13 @@ async function setup() {
   }
   await waitUntilTableExists({ client: dynamodb, maxWaitTime: 30 }, { TableName: table });
 
+  let queueUrl;
   try {
-    await sqs.send(new GetQueueUrlCommand({ QueueName: queueName }));
+    ({ QueueUrl: queueUrl } = await sqs.send(new GetQueueUrlCommand({ QueueName: queueName })));
     console.log(`SQS: cola '${queueName}' ya existe.`);
   } catch (error) {
     if (!['QueueDoesNotExist', 'AWS.SimpleQueueService.NonExistentQueue'].includes(error.name)) throw error;
-    await sqs.send(new CreateQueueCommand({ QueueName: queueName }));
+    ({ QueueUrl: queueUrl } = await sqs.send(new CreateQueueCommand({ QueueName: queueName })));
     console.log(`SQS: cola '${queueName}' creada.`);
   }
 
@@ -84,7 +85,21 @@ async function setup() {
       console.log(`Lambda: función '${functionName}' ya existe.`);
     }
   }
-  console.log('Recursos de Floci preparados. La conexión automática SQS → Lambda aún está pendiente.');
+  const attributes = await sqs.send(new GetQueueAttributesCommand({ QueueUrl: queueUrl, AttributeNames: ['QueueArn'] }));
+  const queueArn = attributes.Attributes?.QueueArn;
+  if (!queueArn) throw new Error('No se pudo obtener el ARN de la cola SQS.');
+  const mappings = await lambda.send(new ListEventSourceMappingsCommand({ FunctionName: functionName, EventSourceArn: queueArn }));
+  const mapping = mappings.EventSourceMappings?.[0];
+  if (!mapping) {
+    await lambda.send(new CreateEventSourceMappingCommand({ FunctionName: functionName, EventSourceArn: queueArn, BatchSize: 1, FunctionResponseTypes: ['ReportBatchItemFailures'] }));
+    console.log('Conexión SQS → Lambda creada.');
+  } else if (mapping.State === 'Disabled' || mapping.State === 'Disabling') {
+    await lambda.send(new UpdateEventSourceMappingCommand({ UUID: mapping.UUID, Enabled: true, BatchSize: 1, FunctionResponseTypes: ['ReportBatchItemFailures'] }));
+    console.log('Conexión SQS → Lambda habilitada.');
+  } else {
+    console.log('Conexión SQS → Lambda ya existe.');
+  }
+  console.log('Recursos de Floci preparados.');
 }
 
 setup().catch((error) => {
