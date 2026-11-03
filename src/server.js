@@ -100,6 +100,14 @@ app.get('/api/comprobantes/:id/imagen', async (req, res) => {
   image.Body.pipe(res);
 });
 
+app.get('/api/comprobantes/:id/resultado', async (req, res) => {
+  const record = await dynamodb.send(new GetItemCommand({ TableName: table, Key: { id: { S: req.params.id } } }));
+  if (!record.Item?.resultadoJson?.S) {
+    return res.status(404).json({ error: 'No se encontró el resultado del comprobante.' });
+  }
+  res.json(JSON.parse(record.Item.resultadoJson.S));
+});
+
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     return res.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'La imagen no debe superar 5 MB.' : 'No se pudo recibir el archivo.' });

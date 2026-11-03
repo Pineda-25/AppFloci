@@ -3,6 +3,22 @@ const message = document.querySelector('#mensaje-formulario');
 const button = form.querySelector('button[type="submit"]');
 const list = document.querySelector('#lista-comprobantes');
 const listMessage = document.querySelector('#mensaje-lista');
+const jsonDialog = document.querySelector('#dialogo-json');
+const jsonContent = document.querySelector('#contenido-json');
+document.querySelector('#cerrar-json').addEventListener('click', () => jsonDialog.close());
+
+async function showResult(id) {
+  jsonContent.textContent = 'Cargando resultado...';
+  jsonDialog.showModal();
+  try {
+    const response = await fetch(`/api/comprobantes/${encodeURIComponent(id)}/resultado`);
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'No se pudo cargar el resultado.');
+    jsonContent.textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    jsonContent.textContent = `Error: ${error.message}`;
+  }
+}
 
 async function loadComprobantes() {
   try {
@@ -28,6 +44,11 @@ async function loadComprobantes() {
       preview.rel = 'noopener noreferrer';
       preview.textContent = 'Ver imagen';
       actions.append(preview);
+      const resultButton = document.createElement('button');
+      resultButton.type = 'button';
+      resultButton.textContent = 'Ver JSON';
+      resultButton.addEventListener('click', () => showResult(comprobante.id));
+      actions.append(' ', resultButton);
     }
     listMessage.textContent = '';
   } catch (error) {

@@ -54,6 +54,11 @@
       </table>
       <p id="mensaje-lista" role="status" aria-live="polite"></p>
     </section>
+    <dialog id="dialogo-json" aria-labelledby="titulo-json">
+      <h2 id="titulo-json">Resultado de Textract</h2>
+      <pre id="contenido-json" style="max-height: 60vh; max-width: 80vw; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;"></pre>
+      <button type="button" id="cerrar-json">Cerrar</button>
+    </dialog>
   </main>
   <script src="/app.js" defer></script>
 </body>

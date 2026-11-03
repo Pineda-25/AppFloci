@@ -25,7 +25,7 @@ npm run dev
 
 Abrir <http://localhost:3000>. Para detener el servidor, pulsar Ctrl+C en la terminal. `npm start` permite iniciarlo sin reinicio automático.
 
-El formulario registra comprobantes en Textract, S3 y DynamoDB. La tabla muestra los registros guardados y permite abrir su imagen; las demás acciones se conectarán en los siguientes pasos.
+El formulario registra comprobantes en Textract, S3 y DynamoDB. La tabla muestra los registros guardados y permite abrir su imagen y consultar el JSON; la eliminación se conectará en un siguiente paso.
 
 ## Comprobar S3 en Floci
 
