@@ -6,7 +6,7 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
 const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { PutItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const { textract } = require('./config/textract');
 const { s3, bucket } = require('./config/s3');
 const { dynamodb, table } = require('./config/dynamodb');
@@ -71,6 +71,22 @@ app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar', '/api/com
     return res.status(201).json({ mensaje: 'Comprobante guardado correctamente.', id, comprobante, imagen: { ...imagen, bucket, key }, resultado });
   }
   res.json({ mensaje: 'Análisis simulado recibido. Aún no se ha guardado el comprobante.', comprobante, imagen, resultado });
+});
+
+app.get('/api/comprobantes', async (req, res) => {
+  const items = [];
+  let lastKey;
+  do {
+    const response = await dynamodb.send(new ScanCommand({ TableName: table, ExclusiveStartKey: lastKey }));
+    items.push(...(response.Items || []));
+    lastKey = response.LastEvaluatedKey;
+  } while (lastKey);
+
+  res.json(items.map((item) => ({
+    id: item.id?.S, tipo: item.tipo?.S, fecha: item.fecha?.S,
+    usuario: item.usuario?.S, tienda: item.tienda?.S,
+    observacion: item.observacion?.S || '', estado: item.estado?.S || 'Pendiente'
+  })));
 });
 
 app.use((error, req, res, next) => {
