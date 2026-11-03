@@ -80,7 +80,9 @@ Ejecuta `npm run check:sqs` para comprobar que la cola esté disponible.
 
 ## Probar Lambda en Floci
 
-La función inicial confirma que Lambda puede ejecutarse; todavía no procesa la cola ni revisa comprobantes. Con Floci iniciado, crea la función si no existe:
+La función recibe eventos con registros de SQS, consulta DynamoDB y marca los comprobantes para revisión humana porque Textract devuelve datos simulados. La conexión automática con la cola todavía está pendiente.
+
+Antes de crear la función, consulta la dirección del contenedor de Floci con `docker inspect floci --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'`. Sustituye `IP_DE_FLOCI` en el comando siguiente por la dirección obtenida; esta puede cambiar al recrear el contenedor.
 
 ```bash
 zip -j /tmp/appfloci-revision.zip lambda/revision/index.js
@@ -88,15 +90,18 @@ env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east
   aws --endpoint-url http://localhost:4566 lambda create-function \
   --function-name revision-comprobantes --runtime nodejs20.x \
   --role arn:aws:iam::000000000000:role/lambda-role \
-  --handler index.handler --zip-file fileb:///tmp/appfloci-revision.zip
+  --handler index.handler --zip-file fileb:///tmp/appfloci-revision.zip \
+  --environment 'Variables={AWS_DYNAMODB_TABLE=comprobantes,FLOCI_ENDPOINT_URL=http://IP_DE_FLOCI:4566}' \
+  --timeout 30
 ```
 
-Para ejecutarla con un evento de prueba:
+Para probarla manualmente, sustituye `ID_DEL_COMPROBANTE` por el ID de un registro existente:
 
 ```bash
 env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
   aws --endpoint-url http://localhost:4566 lambda invoke \
   --function-name revision-comprobantes --cli-binary-format raw-in-base64-out \
-  --payload '{"prueba":"Hola Lambda"}' /tmp/appfloci-respuesta-lambda.json
+  --payload '{"Records":[{"messageId":"prueba-1","body":"{\"comprobanteId\":\"ID_DEL_COMPROBANTE\"}"}]}' \
+  /tmp/appfloci-respuesta-lambda.json
 cat /tmp/appfloci-respuesta-lambda.json
 ```
