@@ -10,7 +10,7 @@
     <h1>Gestión de comprobantes</h1>
     <section aria-labelledby="registro-titulo">
       <h2 id="registro-titulo">Registrar comprobante</h2>
-      <form>
+      <form id="form-comprobante">
         <p><label for="tipo">Tipo de comprobante</label><br>
           <select id="tipo" name="tipo" required>
             <option value="">Selecciona una opción</option>
@@ -38,8 +38,8 @@
         <p><label for="imagen">Imagen del comprobante (JPG o PNG)</label><br>
           <input id="imagen" name="imagen" type="file" accept="image/jpeg,image/png" required>
         </p>
-        <p>El registro estará disponible en el siguiente paso.</p>
-        <button type="button" disabled>Registrar comprobante</button>
+        <button type="submit">Registrar comprobante</button>
+        <p id="mensaje-formulario" role="status" aria-live="polite"></p>
       </form>
     </section>
     <section aria-labelledby="lista-titulo">
@@ -54,5 +54,6 @@
       </table>
     </section>
   </main>
+  <script src="/app.js" defer></script>
 </body>
 </html>
