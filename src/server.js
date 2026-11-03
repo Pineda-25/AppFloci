@@ -135,8 +135,9 @@ app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     return res.status(400).json({ error: error.code === 'LIMIT_FILE_SIZE' ? 'La imagen no debe superar 5 MB.' : 'No se pudo recibir el archivo.' });
   }
-  console.error(error);
-  res.status(500).json({ error: 'Ocurrió un error al recibir el comprobante.' });
+  console.error(`Error en ${req.method} ${req.path}:`, error);
+  if (res.headersSent) return next(error);
+  res.status(500).json({ error: 'No se pudo completar la operación. Revisa que Floci esté disponible.' });
 });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
