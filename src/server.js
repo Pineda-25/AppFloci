@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const multer = require('multer');
 const path = require('node:path');
+const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
+const { textract } = require('./config/textract');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,7 +13,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-app.post('/api/comprobantes/verificar', upload.single('imagen'), (req, res) => {
+app.post(['/api/comprobantes/verificar', '/api/comprobantes/analizar'], upload.single('imagen'), async (req, res) => {
   const { tipo, fecha, usuario, tienda, observacion = '' } = req.body;
   if (!['boleta', 'factura'].includes(tipo) || !fecha || !usuario?.trim() ||
       !['Chincha', 'Pisco', 'Ica'].includes(tienda)) {
@@ -25,7 +27,15 @@ app.post('/api/comprobantes/verificar', upload.single('imagen'), (req, res) => {
     return res.status(400).json({ error: 'Adjunta una imagen JPG o PNG válida.' });
   }
 
-  res.json({ mensaje: 'Datos recibidos correctamente. Aún no se han guardado.', comprobante: { tipo, fecha, usuario: usuario.trim(), tienda, observacion }, imagen: { nombre: req.file.originalname, tamano: req.file.size } });
+  const comprobante = { tipo, fecha, usuario: usuario.trim(), tienda, observacion };
+  const imagen = { nombre: req.file.originalname, tamano: req.file.size };
+
+  if (req.path.endsWith('/verificar')) {
+    return res.json({ mensaje: 'Datos recibidos correctamente. Aún no se han guardado.', comprobante, imagen });
+  }
+
+  const resultado = await textract.send(new DetectDocumentTextCommand({ Document: { Bytes: image } }));
+  res.json({ mensaje: 'Análisis simulado recibido. Aún no se ha guardado el comprobante.', comprobante, imagen, resultado });
 });
 
 app.use((error, req, res, next) => {
