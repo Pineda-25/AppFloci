@@ -75,3 +75,26 @@ env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east
 ```
 
 Ejecuta `npm run check:sqs` para comprobar que la cola esté disponible.
+
+## Probar Lambda en Floci
+
+La función inicial confirma que Lambda puede ejecutarse; todavía no procesa la cola ni revisa comprobantes. Con Floci iniciado, crea la función si no existe:
+
+```bash
+zip -j /tmp/appfloci-revision.zip lambda/revision/index.js
+env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:4566 lambda create-function \
+  --function-name revision-comprobantes --runtime nodejs20.x \
+  --role arn:aws:iam::000000000000:role/lambda-role \
+  --handler index.handler --zip-file fileb:///tmp/appfloci-revision.zip
+```
+
+Para ejecutarla con un evento de prueba:
+
+```bash
+env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 \
+  aws --endpoint-url http://localhost:4566 lambda invoke \
+  --function-name revision-comprobantes --cli-binary-format raw-in-base64-out \
+  --payload '{"prueba":"Hola Lambda"}' /tmp/appfloci-respuesta-lambda.json
+cat /tmp/appfloci-respuesta-lambda.json
+```
