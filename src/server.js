@@ -5,8 +5,8 @@ const multer = require('multer');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { DetectDocumentTextCommand } = require('@aws-sdk/client-textract');
-const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { PutItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
+const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { PutItemCommand, ScanCommand, GetItemCommand } = require('@aws-sdk/client-dynamodb');
 const { textract } = require('./config/textract');
 const { s3, bucket } = require('./config/s3');
 const { dynamodb, table } = require('./config/dynamodb');
@@ -87,6 +87,17 @@ app.get('/api/comprobantes', async (req, res) => {
     usuario: item.usuario?.S, tienda: item.tienda?.S,
     observacion: item.observacion?.S || '', estado: item.estado?.S || 'Pendiente'
   })));
+});
+
+app.get('/api/comprobantes/:id/imagen', async (req, res) => {
+  const record = await dynamodb.send(new GetItemCommand({ TableName: table, Key: { id: { S: req.params.id } } }));
+  if (!record.Item?.imagenKey?.S || !record.Item?.imagenBucket?.S) {
+    return res.status(404).json({ error: 'No se encontró la imagen del comprobante.' });
+  }
+  const image = await s3.send(new GetObjectCommand({ Bucket: record.Item.imagenBucket.S, Key: record.Item.imagenKey.S }));
+  res.type(image.ContentType || 'application/octet-stream');
+  image.Body.on('error', (error) => res.destroy(error));
+  image.Body.pipe(res);
 });
 
 app.use((error, req, res, next) => {

@@ -18,9 +18,16 @@ async function loadComprobantes() {
     }
     for (const comprobante of comprobantes) {
       const row = list.insertRow();
-      for (const value of [comprobante.tipo, comprobante.fecha, comprobante.usuario, comprobante.tienda, comprobante.observacion, comprobante.estado, 'Próximamente']) {
+      for (const value of [comprobante.tipo, comprobante.fecha, comprobante.usuario, comprobante.tienda, comprobante.observacion, comprobante.estado]) {
         row.insertCell().textContent = value || '';
       }
+      const actions = row.insertCell();
+      const preview = document.createElement('a');
+      preview.href = `/api/comprobantes/${encodeURIComponent(comprobante.id)}/imagen`;
+      preview.target = '_blank';
+      preview.rel = 'noopener noreferrer';
+      preview.textContent = 'Ver imagen';
+      actions.append(preview);
     }
     listMessage.textContent = '';
   } catch (error) {
