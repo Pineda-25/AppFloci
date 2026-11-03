@@ -53,3 +53,13 @@ env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east
 ```
 
 Ejecuta `npm run check:dynamodb` para comprobar la conexión y el estado de la tabla.
+
+## Probar Textract en Floci
+
+Con Floci iniciado, indica la ruta de una imagen JPG o PNG:
+
+```bash
+npm run check:textract -- /ruta/a/imagen.jpg
+```
+
+El comando muestra la respuesta JSON de la operación `DetectDocumentText`. En Floci el análisis puede ser simulado; no se debe asumir que el texto devuelto corresponde a la imagen.
