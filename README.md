@@ -25,7 +25,7 @@ npm run dev
 
 Abrir <http://localhost:3000>. Para detener el servidor, pulsar Ctrl+C en la terminal. `npm start` permite iniciarlo sin reinicio automático.
 
-La pantalla actual es una base inicial; los servicios y el formulario se incorporarán en los siguientes pasos.
+La pantalla muestra el formulario y la tabla iniciales. El registro y las acciones se incorporarán en los siguientes pasos.
 
 ## Comprobar S3 en Floci
 

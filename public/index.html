@@ -8,7 +8,51 @@
 <body>
   <main>
     <h1>Gestión de comprobantes</h1>
-    <p>La aplicación está en construcción.</p>
+    <section aria-labelledby="registro-titulo">
+      <h2 id="registro-titulo">Registrar comprobante</h2>
+      <form>
+        <p><label for="tipo">Tipo de comprobante</label><br>
+          <select id="tipo" name="tipo" required>
+            <option value="">Selecciona una opción</option>
+            <option value="boleta">Boleta</option>
+            <option value="factura">Factura</option>
+          </select>
+        </p>
+        <p><label for="fecha">Fecha de emisión</label><br>
+          <input id="fecha" name="fecha" type="date" required>
+        </p>
+        <p><label for="usuario">Nombre del usuario</label><br>
+          <input id="usuario" name="usuario" type="text" required>
+        </p>
+        <p><label for="tienda">Tienda</label><br>
+          <select id="tienda" name="tienda" required>
+            <option value="">Selecciona una tienda</option>
+            <option value="Chincha">Chincha</option>
+            <option value="Pisco">Pisco</option>
+            <option value="Ica">Ica</option>
+          </select>
+        </p>
+        <p><label for="observacion">Observación (opcional)</label><br>
+          <textarea id="observacion" name="observacion" rows="3"></textarea>
+        </p>
+        <p><label for="imagen">Imagen del comprobante (JPG o PNG)</label><br>
+          <input id="imagen" name="imagen" type="file" accept="image/jpeg,image/png" required>
+        </p>
+        <p>El registro estará disponible en el siguiente paso.</p>
+        <button type="button" disabled>Registrar comprobante</button>
+      </form>
+    </section>
+    <section aria-labelledby="lista-titulo">
+      <h2 id="lista-titulo">Comprobantes registrados</h2>
+      <table>
+        <thead>
+          <tr><th scope="col">Tipo</th><th scope="col">Fecha</th><th scope="col">Usuario</th><th scope="col">Tienda</th><th scope="col">Observación</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="7">Aún no hay comprobantes registrados.</td></tr>
+        </tbody>
+      </table>
+    </section>
   </main>
 </body>
 </html>
